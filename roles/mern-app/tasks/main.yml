@@ -1,0 +1,48 @@
+---
+# tasks file for roles/mern-app
+- name: update apt repository
+  ansible.builtin.shell: 'curl -fsSL https://deb.nodesource.com/setup_21.x | sudo -E bash -'
+
+- name: install nodejs
+  ansible.builtin.shell: 'sudo apt-get install -y nodejs'
+
+- name: create a directory
+  ansible.builtin.file:
+    name: /home/ubuntu/sites
+    state: directory
+    mode: '0755'
+
+- name: clone the repository
+  ansible.builtin.git:
+    repo: https://github.com/akash66sheoran/mern-goalsetter.git
+    dest: /home/ubuntu/sites/
+  ignore_errors: true
+
+- name: copy .env from local to remote
+  ansible.builtin.template:
+    src: .env.j2
+    dest: /home/ubuntu/sites/.env
+
+- name: install backend dependencies
+  ansible.builtin.npm:
+    path: /home/ubuntu/sites
+    state: present
+
+- name: install frontend dependencies
+  ansible.builtin.npm:
+    path: /home/ubuntu/sites/frontend
+    state: present
+
+- name: Build app
+  command: npm run build
+  args:
+    chdir: /home/ubuntu/sites/frontend
+
+- name: install pm2
+  ansible.builtin.command:
+    cmd: npm i -g pm2
+  
+- name: start the application
+  ansible.builtin.command: pm2 -f start backend/server.js
+  args:
+    chdir: /home/ubuntu/sites
